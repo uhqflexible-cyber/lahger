@@ -4713,7 +4713,14 @@
 
                 task.wait(0.1)
                 hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(bestFace.X, hrp.Position.Y, bestFace.Z))
+                if isSecondFloor or not _G._isTargetPlotUnlocked(targetPetData.plot) then
+                    walkForward(0.4)
+                    task.wait(0.4)
+                    instantClone()
+                    while _G.isCloning do task.wait() end
+                end
                 task.wait(0.15)
+
 
 
                 if carpet then hum:EquipTool(carpet) end
@@ -4763,24 +4770,8 @@
                         task.wait(0.05)
                     end
                 end
-                
-                -- INSTANT DEPLOY: Drop the Quantum Cloner turret next to the brainrot
-                if cloner and hum then
-                    pcall(function() hum:EquipTool(cloner) end)
-                    -- Pivot 90 degrees to place the turret to the side
-                    local originalCF = hrp.CFrame
-                    hrp.CFrame = originalCF * CFrame.Angles(0, math.rad(90), 0)
-                    task.wait(0.05)
-                    
-                    cloner:Activate() -- One single click to drop the physical machine
-                    task.wait(2) -- Wait 2 seconds as requested by user
-                    
-                    -- Look back at the brainrot
-                    hrp.CFrame = originalCF
                 end
-
-
-
+                
                 local _trapsPlaced = false
 
                 if not _trapsPlaced then
@@ -4789,13 +4780,30 @@
                         if tool:IsA("Tool") and (string.find(string.lower(tool.Name), "trap") or string.find(string.lower(tool.Name), "sentry")) then
                             hum:EquipTool(tool)
                             task.wait(0.15)
+                            
+                            local isSentry = string.find(string.lower(tool.Name), "sentry")
+                            local originalCF = hrp.CFrame
+                            
+                            if isSentry then
+                                -- Pivot 90 degrees for the Sentry (Tourelle)
+                                hrp.CFrame = originalCF * CFrame.Angles(0, math.rad(90), 0)
+                                task.wait(0.05)
+                            end
+                            
                             VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, nil, 1)
                             task.wait(0.1)
                             VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, nil, 1)
-                            task.wait(0.1)
+                            
+                            if isSentry then
+                                task.wait(2) -- Wait 2 seconds after placing the Sentry
+                                hrp.CFrame = originalCF -- Re-align with Brainrot
+                            else
+                                task.wait(0.1)
+                            end
                         end
                     end
                 end
+
 
                 local function hasBrainrot()
                     local confirmed = false
