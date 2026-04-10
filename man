@@ -1000,30 +1000,8 @@
 
 
                     local originalCF = hrp.CFrame
-                    local shiftX = 3 -- Default shift right
-                    local targetBrainrot = nil
-                    pcall(function()
-                        local tData = _G.currentSnipeTarget
-                            or (SharedState.SelectedPetData and SharedState.SelectedPetData.animalData)
-                        if tData then
-                            targetBrainrot = findAdorneeGlobal(tData)
-                        end
-                    end)
-                    if targetBrainrot then
-                        local toTarget = (targetBrainrot.Position - hrp.Position)
-                        local rightVec = originalCF.RightVector
-                        local dot = rightVec:Dot(toTarget.Unit)
-                        if dot > 0 then
-                            -- Brainrot is on the right, so shift left
-                            shiftX = -4
-                        else
-                            -- Brainrot is on the left, so shift right
-                            shiftX = 4
-                        end
-                    end
                     
-                    -- Shift laterally along the wall, but DO NOT rotate. Keep facing the wall.
-                    hrp.CFrame = originalCF * CFrame.new(shiftX, 0, 0)
+                    -- Player simply places the turret perfectly straight without any left or right offset
                     task.wait(0.05)
 
                     cloner:Activate()
