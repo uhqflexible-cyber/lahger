@@ -5024,9 +5024,7 @@
                                             hrp.AssemblyAngularVelocity = Vector3.zero
                                             -- Look towards center and pivot to the side OPPOSITE of the target to clear the path
                                             local baseLook = CFrame.lookAt(landingPos, Vector3.new(plotCenter.X, landingPos.Y, plotCenter.Z))
-                                            local relPos = baseLook:PointToObjectSpace(tp.Position)
-                                            local pivotAngle = (relPos.X > 0) and math.rad(-90) or math.rad(90)
-                                            hrp.CFrame = baseLook * CFrame.Angles(0, pivotAngle, 0)
+                                            hrp.CFrame = baseLook
 
 
                                             
