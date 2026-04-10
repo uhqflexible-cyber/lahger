@@ -1000,7 +1000,7 @@
 
 
                     local originalCF = hrp.CFrame
-                    local pivotAngle = 90
+                    local shiftX = 3 -- Default shift right
                     local targetBrainrot = nil
                     pcall(function()
                         local tData = _G.currentSnipeTarget
@@ -1014,12 +1014,16 @@
                         local rightVec = originalCF.RightVector
                         local dot = rightVec:Dot(toTarget.Unit)
                         if dot > 0 then
-                            pivotAngle = -90
+                            -- Brainrot is on the right, so shift left
+                            shiftX = -4
                         else
-                            pivotAngle = 90
+                            -- Brainrot is on the left, so shift right
+                            shiftX = 4
                         end
                     end
-                    hrp.CFrame = originalCF * CFrame.Angles(0, math.rad(pivotAngle), 0)
+                    
+                    -- Shift laterally along the wall, but DO NOT rotate. Keep facing the wall.
+                    hrp.CFrame = originalCF * CFrame.new(shiftX, 0, 0)
                     task.wait(0.05)
 
                     cloner:Activate()
