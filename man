@@ -1064,23 +1064,10 @@
 
                     tpButton.Visible = true
 
-                    local carpetName = Config and Config.TpSettings and Config.TpSettings.Tool or "Flying Carpet"
-                    local carpet = LocalPlayer.Backpack:FindFirstChild(carpetName) or char:FindFirstChild(carpetName)
-                    
-                    if carpet then
-                        pcall(function() hum:EquipTool(carpet) end)
-                        task.wait(0.05)
-                        
-                        -- Perfect vertical air displacement to avoid all ground obstacles and hitbox issues
-                        hrp.CFrame = hrp.CFrame * CFrame.new(0, 15, 0)
-                        hrp.AssemblyLinearVelocity = Vector3.new(0, 10, 0) -- Slight upward momentum for the carpet
-                        task.wait(0.1)
-                    else
-                        hum.Jump = true
-                        pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end)
-                        task.wait(0.15)
-                    end
-
+                    -- Perfect vertical air displacement (15 studs) while Cloner is still equipped
+                    hrp.CFrame = hrp.CFrame * CFrame.new(0, 15, 0)
+                    hrp.AssemblyLinearVelocity = Vector3.new(0, 10, 0)
+                    task.wait(0.05)
 
                     if firesignal then
                         firesignal(tpButton.MouseButton1Up)
@@ -1092,8 +1079,14 @@
                         vim:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 1)
                         task.wait()
 
-
                         vim:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 1)
+                    end
+
+                    -- INSTANTLY equip carpet after click to bypass anticheat during the actual TP movement
+                    local carpetName = Config and Config.TpSettings and Config.TpSettings.Tool or "Flying Carpet"
+                    local carpet = LocalPlayer.Backpack:FindFirstChild(carpetName) or char:FindFirstChild(carpetName)
+                    if carpet then
+                        pcall(function() hum:EquipTool(carpet) end)
                     end
                 end)
 
