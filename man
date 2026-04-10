@@ -4743,33 +4743,55 @@
                     end
                 end
 
-                if not isSecondFloor then
-                    local bestSpot = CLONE_POSITIONS_FLOOR[1]
-                    local minDst = math.huge
-                    for _, v in ipairs(CLONE_POSITIONS_FLOOR) do
-                        local d = (targetPart.Position - v).Magnitude
-                        if d < minDst then minDst = d; bestSpot = v end
+                if targetPlot then
+                    local edgePart = getClosestExteriorPart(targetPlot)
+                    if edgePart then
+                        local edgePos = edgePart.Position
+                        local isSecondFloor = exactPos.Y > 10
+                        local safeY = isSecondFloor and 20.7 or -4
+                        local safePos = Vector3.new(edgePos.X, safeY, edgePos.Z)
+
+                        for i = 1, 6 do
+                            if (hrp.Position - safePos).Magnitude > 3 then
+                                hrp.CFrame = CFrame.new(safePos)
+                                task.wait(0.05)
+                            end
+                        end
+
+                        local mr = targetPlot:FindFirstChild("MainRoot")
+                        local lookTarget = mr and mr.Position or exactPos
+                        task.wait(0.1)
+                        hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(lookTarget.X, hrp.Position.Y, lookTarget.Z))
                     end
-                    for i = 1, 6 do
-                        if (hrp.Position - bestSpot).Magnitude > 3 then
-                            hrp.CFrame = CFrame.new(bestSpot)
-                            task.wait(0.05)
+                else
+                    if not isSecondFloor then
+                        local bestSpot = CLONE_POSITIONS_FLOOR[1]
+                        local minDst = math.huge
+                        for _, v in ipairs(CLONE_POSITIONS_FLOOR) do
+                            local d = (targetPart.Position - v).Magnitude
+                            if d < minDst then minDst = d; bestSpot = v end
+                        end
+                        for i = 1, 6 do
+                            if (hrp.Position - bestSpot).Magnitude > 3 then
+                                hrp.CFrame = CFrame.new(bestSpot)
+                                task.wait(0.05)
+                            end
                         end
                     end
-                end
 
-                local bestFace = FACE_TARGETS[1]
-                local minFaceDist = math.huge
-                for _, v in ipairs(FACE_TARGETS) do
-                    local d = (hrp.Position - v).Magnitude
-                    if d < minFaceDist then
-                        minFaceDist = d
-                        bestFace = v
+                    local bestFace = FACE_TARGETS[1]
+                    local minFaceDist = math.huge
+                    for _, v in ipairs(FACE_TARGETS) do
+                        local d = (hrp.Position - v).Magnitude
+                        if d < minFaceDist then
+                            minFaceDist = d
+                            bestFace = v
+                        end
                     end
-                end
 
-                task.wait(0.1)
-                hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(bestFace.X, hrp.Position.Y, bestFace.Z))
+                    task.wait(0.1)
+                    hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(bestFace.X, hrp.Position.Y, bestFace.Z))
+                end
                 if isSecondFloor or not _G._isTargetPlotUnlocked(targetPetData.plot) then
                     walkForward(0.4)
                     task.wait(0.4)
