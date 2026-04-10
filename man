@@ -1000,16 +1000,32 @@
 
 
                     local originalCF = hrp.CFrame
-                    
-                    -- Player simply places the turret perfectly straight without any left or right offset
+                    local pivotAngle = 90
+                    local targetBrainrot = nil
+                    pcall(function()
+                        local tData = _G.currentSnipeTarget
+                            or (SharedState.SelectedPetData and SharedState.SelectedPetData.animalData)
+                        if tData then
+                            targetBrainrot = findAdorneeGlobal(tData)
+                        end
+                    end)
+                    if targetBrainrot then
+                        local toTarget = (targetBrainrot.Position - hrp.Position)
+                        local rightVec = originalCF.RightVector
+                        local dot = rightVec:Dot(toTarget.Unit)
+                        if dot > 0 then
+                            pivotAngle = -90
+                        else
+                            pivotAngle = 90
+                        end
+                    end
+                    hrp.CFrame = originalCF * CFrame.Angles(0, math.rad(pivotAngle), 0)
                     task.wait(0.05)
 
                     cloner:Activate()
                     task.wait(0.4)
 
-                    hrp.CFrame = originalCF * CFrame.new(0, 0, -5)
-                    hrp.AssemblyLinearVelocity = Vector3.zero
-                    hrp.AssemblyAngularVelocity = Vector3.zero
+                    hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, 1.4)
                     task.wait(0.6)
 
                     local cloneName2 = tostring(LocalPlayer.UserId) .. "_Clone"
@@ -1042,10 +1058,9 @@
 
                     tpButton.Visible = true
 
-                    -- Perfect vertical air displacement (15 studs) while Cloner is still equipped
-                    hrp.CFrame = hrp.CFrame * CFrame.new(0, 15, 0)
-                    hrp.AssemblyLinearVelocity = Vector3.new(0, 10, 0)
-                    task.wait(0.05)
+                    hum.Jump = true
+                    pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end)
+                    task.wait(0.15)
 
                     if firesignal then
                         firesignal(tpButton.MouseButton1Up)
@@ -1058,13 +1073,6 @@
                         task.wait()
 
                         vim:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 1)
-                    end
-
-                    -- INSTANTLY equip carpet after click to bypass anticheat during the actual TP movement
-                    local carpetName = Config and Config.TpSettings and Config.TpSettings.Tool or "Flying Carpet"
-                    local carpet = LocalPlayer.Backpack:FindFirstChild(carpetName) or char:FindFirstChild(carpetName)
-                    if carpet then
-                        pcall(function() hum:EquipTool(carpet) end)
                     end
                 end)
 
@@ -4767,12 +4775,7 @@
                     task.wait(0.1)
                     hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(bestFace.X, hrp.Position.Y, bestFace.Z))
                 end
-                if isSecondFloor or not _G._isTargetPlotUnlocked(targetPetData.plot) then
-                    walkForward(0.4)
-                    task.wait(0.4)
-                    instantClone()
-                    while _G.isCloning do task.wait() end
-                end
+
                 task.wait(0.15)
 
                 if carpet then hum:EquipTool(carpet) end
@@ -4822,6 +4825,11 @@
                         task.wait(0.05)
                     end
                 end
+
+                -- Execute Clone AFTER teleporting to the brainrot, securely inside the base.
+                task.wait(0.15)
+                instantClone()
+                while _G.isCloning do task.wait() end
 
                 local _trapsPlaced = false
                 if not _trapsPlaced then
