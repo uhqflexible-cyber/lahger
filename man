@@ -4712,7 +4712,8 @@
                 end
 
                 task.wait(0.1)
-                hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(bestFace.X, hrp.Position.Y, bestFace.Z))
+                -- Face directly towards the target brainrot instead of sideways to completely drop the 90-degree offset
+                hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(targetPart.Position.X, hrp.Position.Y, targetPart.Position.Z))
                 if isSecondFloor or not _G._isTargetPlotUnlocked(targetPetData.plot) then
                     walkForward(0.4)
                     task.wait(0.4)
