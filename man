@@ -973,11 +973,10 @@
 
                     task.wait(0.05)
 
-
-                    -- Side-pivot for non-obstructive placement (90 degrees)
+                    -- Place straight ahead (no pivot)
                     local originalCF = hrp.CFrame
-                    hrp.CFrame = originalCF * CFrame.Angles(0, math.rad(90), 0)
                     task.wait(0.05)
+
 
                     cloner:Activate() -- STAGE 1: Place Turret
                     task.wait(0.4)
