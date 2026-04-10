@@ -4764,12 +4764,22 @@
                     end
                 end
                 
-                -- INSTANT DEPLOY: Drop the Quantum Cloner turret next to the brainrot with zero delay
+                -- INSTANT DEPLOY: Drop the Quantum Cloner turret next to the brainrot
                 if cloner and hum then
                     pcall(function() hum:EquipTool(cloner) end)
-                    cloner:Activate() -- One single click to drop the physical machine
+                    -- Pivot 90 degrees to place the turret to the side
+                    local originalCF = hrp.CFrame
+                    hrp.CFrame = originalCF * CFrame.Angles(0, math.rad(90), 0)
                     task.wait(0.05)
+                    
+                    cloner:Activate() -- One single click to drop the physical machine
+                    task.wait(2) -- Wait 2 seconds as requested by user
+                    
+                    -- Look back at the brainrot
+                    hrp.CFrame = originalCF
                 end
+
+
 
                 local _trapsPlaced = false
 
