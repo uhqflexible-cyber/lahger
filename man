@@ -4764,9 +4764,12 @@
                     end
                 end
                 
-                -- Place Quantum Cloner Turret & Clone after arriving at target
-                instantClone()
-                while _G.isCloning do task.wait() end
+                -- INSTANT DEPLOY: Drop the Quantum Cloner turret next to the brainrot with zero delay
+                if cloner and hum then
+                    pcall(function() hum:EquipTool(cloner) end)
+                    cloner:Activate() -- One single click to drop the physical machine
+                    task.wait(0.05)
+                end
 
                 local _trapsPlaced = false
 
