@@ -890,71 +890,46 @@
             end
 
             getClosestExteriorPart = function(plot)
+
                 if not plot then return nil end
                 local char = LocalPlayer.Character; if not char then return nil end
                 local hrp = char:FindFirstChild("HumanoidRootPart"); if not hrp then return nil end
-
-                local mr = plot:FindFirstChild("MainRoot")
-                local plotCenter = mr and Vector3.new(mr.Position.X, 0, mr.Position.Z) or nil
-
+                
                 local candidates = {}
-                local BLOCKED = {wall=true, roof=true, ceiling=true, window=true, floor=true, door=true}
-
-                local function addPart(p)
-                    if not p:IsA("BasePart") then return end
-                    local n = p.Name:lower()
-                    for word in pairs(BLOCKED) do if string.find(n, word) then return end end
-                    if p.Position.Y > 15 then return end
-                    if plotCenter and (Vector3.new(p.Position.X, 0, p.Position.Z) - plotCenter).Magnitude < 12 then return end
-                    table.insert(candidates, p)
-                end
-
                 if plot:FindFirstChild("Decorations") then
-                    for _, obj in ipairs(plot.Decorations:GetDescendants()) do
-                        addPart(obj)
-                    end
-                end
-
-                local sign = plot:FindFirstChild("PlotSign")
-                if sign then
-                    if sign:IsA("BasePart") then table.insert(candidates, sign)
-                    else
-                        local sp = sign:FindFirstChildWhichIsA("BasePart", true)
-                        if sp then table.insert(candidates, sp) end
-                    end
-                end
-
-                if #candidates == 0 then
-                    for _, obj in ipairs(plot:GetDescendants()) do
-                        if obj:IsA("BasePart") and obj.Position.Y < 15 then
-                            if plotCenter and (Vector3.new(obj.Position.X, 0, obj.Position.Z) - plotCenter).Magnitude > 10 then
-                                table.insert(candidates, obj)
-                            end
+                    local decs = plot.Decorations:GetChildren()
+                    for _, id in ipairs({12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 28, 29, 30}) do
+                        local obj = decs[id]
+                        if obj then
+                            if obj:IsA("BasePart") then table.insert(candidates, obj)
+                            else for _, d in ipairs(obj:GetDescendants()) do if d:IsA("BasePart") then table.insert(candidates, d) end end end
                         end
-                        if #candidates >= 30 then break end
                     end
                 end
-
+                
+                local sign = plot:FindFirstChild("PlotSign")
+                if sign then table.insert(candidates, sign) end
+                
                 table.sort(candidates, function(a, b)
                     return (hrp.Position - a.Position).Magnitude < (hrp.Position - b.Position).Magnitude
                 end)
-
+                
                 local params = RaycastParams.new()
                 params.FilterType = Enum.RaycastFilterType.Exclude
                 params.FilterDescendantsInstances = {char}
-
+                
                 for _, p in ipairs(candidates) do
                     local dir = (p.Position - hrp.Position)
                     local res = Workspace:Raycast(hrp.Position, dir, params)
-                    if not res or res.Instance:IsDescendantOf(plot) or res.Instance == p then
-                        local rn = res and res.Instance.Name:lower() or ""
-                        local blocked = false
-                        for word in pairs(BLOCKED) do if string.find(rn, word) then blocked = true; break end end
-                        if not blocked then return p end
+                    if not res or res.Instance:IsDescendantOf(p) or res.Instance == p or res.Instance:IsDescendantOf(plot) then
+                        local n = res and res.Instance.Name:lower() or ""
+                        if not string.find(n, "wall") and not string.find(n, "roof") and not string.find(n, "ceiling") and not string.find(n, "window") then
+                            return p
+                        end
                     end
                 end
-
-                return sign and (sign:IsA("BasePart") and sign or sign:FindFirstChildWhichIsA("BasePart", true)) or candidates[1]
+                
+                return sign or candidates[1]
             end
 
             
@@ -999,68 +974,55 @@
                     task.wait(0.05)
 
 
+                    -- Side-pivot for non-obstructive placement (90 degrees)
                     local originalCF = hrp.CFrame
-                    local pivotAngle = 90
-                    local targetBrainrot = nil
-                    pcall(function()
-                        local tData = _G.currentSnipeTarget
-                            or (SharedState.SelectedPetData and SharedState.SelectedPetData.animalData)
-                        if tData then
-                            targetBrainrot = findAdorneeGlobal(tData)
-                        end
-                    end)
-                    if targetBrainrot then
-                        local toTarget = (targetBrainrot.Position - hrp.Position)
-                        local rightVec = originalCF.RightVector
-                        local dot = rightVec:Dot(toTarget.Unit)
-                        if dot > 0 then
-                            pivotAngle = -90
-                        else
-                            pivotAngle = 90
-                        end
-                    end
-                    hrp.CFrame = originalCF * CFrame.Angles(0, math.rad(pivotAngle), 0)
+                    hrp.CFrame = originalCF * CFrame.Angles(0, math.rad(90), 0)
                     task.wait(0.05)
 
-                    cloner:Activate()
+                    cloner:Activate() -- STAGE 1: Place Turret
                     task.wait(0.4)
-
+                    
+                    -- Micro-nudge back to clear the turret hitbox
                     hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, 1.4)
-                    task.wait(0.6)
+                    task.wait(0.6) -- Increased wait for server sync
 
-                    local cloneName2 = tostring(LocalPlayer.UserId) .. "_Clone"
-
+                    local cloneName = tostring(LocalPlayer.UserId) .. "_Clone"
+                    
+                    -- Try to activate Stage 2 (Clone creation)
                     cloner:Activate()
                     task.wait(0.2)
 
+                    -- STRICT GUARD: Loop with retry to ensure the clone exists before proceeding to TP
                     local cloneFound = false
                     for i = 1, 20 do
-                        if Workspace:FindFirstChild(cloneName2) then
-                            cloneFound = true
-                            break
+                        if Workspace:FindFirstChild(cloneName) then 
+                            cloneFound = true 
+                            break 
                         end
-                        if i % 5 == 0 then cloner:Activate() end
+                        if i % 5 == 0 then cloner:Activate() end -- Retry activation every 5 checks
                         task.wait(0.1)
                     end
 
                     if not cloneFound then
                         _G.isCloning = false
-                        return
+                        return -- ABORT: Do not TP if cloning failed
                     end
 
                     local toolsFrames = LocalPlayer.PlayerGui:FindFirstChild("ToolsFrames")
                     local qcFrame = toolsFrames and toolsFrames:FindFirstChild("QuantumCloner")
                     local tpButton = qcFrame and qcFrame:FindFirstChild("TeleportToClone")
-                    if not tpButton then
+                    if not tpButton then 
                         _G.isCloning = false
-                        error("Teleport button missing")
+                        error("Teleport button missing") 
                     end
 
                     tpButton.Visible = true
-
+                    
+                    -- Jump-TP Maneuver: ONLY happens if clone is confirmed
                     hum.Jump = true
                     pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end)
                     task.wait(0.15)
+
 
                     if firesignal then
                         firesignal(tpButton.MouseButton1Up)
@@ -1071,6 +1033,7 @@
 
                         vim:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 1)
                         task.wait()
+
 
                         vim:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 1)
                     end
@@ -4657,8 +4620,6 @@
                     end
                 end
 
-                _G.currentSnipeTarget = targetPetData
-
                 local char = LocalPlayer.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 local hum = char and char:FindFirstChild("Humanoid")
@@ -4726,57 +4687,35 @@
                     end
                 end
 
-                if targetPlot then
-                    local edgePart = getClosestExteriorPart(targetPlot)
-                    if edgePart then
-                        local edgePos = edgePart.Position
-                        local isSecondFloor = exactPos.Y > 10
-                        local safeY = isSecondFloor and 20.7 or -4
-                        local safePos = Vector3.new(edgePos.X, safeY, edgePos.Z)
-
-                        for i = 1, 6 do
-                            if (hrp.Position - safePos).Magnitude > 3 then
-                                hrp.CFrame = CFrame.new(safePos)
-                                task.wait(0.05)
-                            end
-                        end
-
-                        local mr = targetPlot:FindFirstChild("MainRoot")
-                        local lookTarget = mr and mr.Position or exactPos
-                        task.wait(0.1)
-                        hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(lookTarget.X, hrp.Position.Y, lookTarget.Z))
+                if not isSecondFloor then
+                    local bestSpot = CLONE_POSITIONS_FLOOR[1]
+                    local minDst = math.huge
+                    for _, v in ipairs(CLONE_POSITIONS_FLOOR) do
+                        local d = (targetPart.Position - v).Magnitude
+                        if d < minDst then minDst = d; bestSpot = v end
                     end
-                else
-                    if not isSecondFloor then
-                        local bestSpot = CLONE_POSITIONS_FLOOR[1]
-                        local minDst = math.huge
-                        for _, v in ipairs(CLONE_POSITIONS_FLOOR) do
-                            local d = (targetPart.Position - v).Magnitude
-                            if d < minDst then minDst = d; bestSpot = v end
-                        end
-                        for i = 1, 6 do
-                            if (hrp.Position - bestSpot).Magnitude > 3 then
-                                hrp.CFrame = CFrame.new(bestSpot)
-                                task.wait(0.05)
-                            end
+                    for i = 1, 6 do
+                        if (hrp.Position - bestSpot).Magnitude > 3 then
+                            hrp.CFrame = CFrame.new(bestSpot)
+                            task.wait(0.05)
                         end
                     end
-
-                    local bestFace = FACE_TARGETS[1]
-                    local minFaceDist = math.huge
-                    for _, v in ipairs(FACE_TARGETS) do
-                        local d = (hrp.Position - v).Magnitude
-                        if d < minFaceDist then
-                            minFaceDist = d
-                            bestFace = v
-                        end
-                    end
-
-                    task.wait(0.1)
-                    hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(bestFace.X, hrp.Position.Y, bestFace.Z))
                 end
 
+                local bestFace = FACE_TARGETS[1]
+                local minFaceDist = math.huge
+                for _, v in ipairs(FACE_TARGETS) do
+                    local d = (hrp.Position - v).Magnitude
+                    if d < minFaceDist then
+                        minFaceDist = d
+                        bestFace = v
+                    end
+                end
+
+                task.wait(0.1)
+                hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(bestFace.X, hrp.Position.Y, bestFace.Z))
                 task.wait(0.15)
+
 
                 if carpet then hum:EquipTool(carpet) end
 
@@ -4825,13 +4764,13 @@
                         task.wait(0.05)
                     end
                 end
-
-                -- Execute Clone AFTER teleporting to the brainrot, securely inside the base.
-                task.wait(0.15)
+                
+                -- Place Quantum Cloner Turret & Clone after arriving at target
                 instantClone()
                 while _G.isCloning do task.wait() end
 
                 local _trapsPlaced = false
+
                 if not _trapsPlaced then
                     _trapsPlaced = true
                     for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
